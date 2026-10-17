@@ -27,6 +27,7 @@ except ImportError:
 # name -> (function name, keyword arguments, input preparation)
 OPERATIONS = {
     "b64encode": ("b64encode", {}, lambda raw: raw),
+    "b64encode(altchars)": ("b64encode", {"altchars": b"*!"}, lambda raw: raw),
     "b64decode": ("b64decode", {}, base64.b64encode),
     "b64decode(validate=True)": ("b64decode", {"validate": True}, base64.b64encode),
     "urlsafe_b64encode": ("urlsafe_b64encode", {}, lambda raw: raw),

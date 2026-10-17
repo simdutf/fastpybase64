@@ -93,7 +93,7 @@ change, so memory stays safe).
 ## Build and test
 
 Python 3.10 or newer, and a C++17 compiler (clang, GCC or MSVC). The simdutf
-9.3.1 amalgamation is in `vendor/`. Only its base64 functions are compiled
+9.3.2 amalgamation is in `vendor/`. Only its base64 functions are compiled
 (see `setup.py`).
 
 pip:
@@ -132,7 +132,7 @@ python bench.py --sizes 64,4096,65536 --ops b64encode,b64decode
 ## Benchmarks
 
 Intel Xeon Gold 6548N (Emerald Rapids), one core, Python 3.14.6,
-fastpybase64 0.1.0 (simdutf 9.3.1, `icelake` kernel), pybase64 1.5.1 (its
+fastpybase64 0.1.1 (simdutf 9.3.2, `icelake` kernel), pybase64 1.5.1 (its
 AVX512VBMI kernel), random bytes. Speeds are in GB/s of binary data, for
 encoding and decoding alike (higher is better).
 
@@ -140,22 +140,22 @@ encoding and decoding alike (higher is better).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_decode_dark.png">
-  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_decode.png" width="80%" alt="Decoding 64 KiB: fastpybase64 b64decode 32.66 GB/s, fastpybase64 validate=True 30.81, pybase64 validate=True 14.65, pybase64 b64decode 3.44, base64 validate=True 0.55, base64 b64decode 0.50">
+  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_decode.png" width="80%" alt="Decoding 64 KiB: fastpybase64 b64decode 32.20 GB/s, fastpybase64 validate=True 30.49, pybase64 validate=True 14.74, pybase64 b64decode 3.44, base64 validate=True 0.55, base64 b64decode 0.49">
 </picture>
 
 | function | size | `base64` | pybase64 | fastpybase64 |
 |---|---:|---:|---:|---:|
-| `b64decode` | 64 B | 0.24 | 0.44 | **0.96** |
-| | 4 KiB | 0.48 | 3.06 | **22.42** |
-| | 64 KiB | 0.50 | 3.44 | **32.66** |
-| | 1 MiB | 0.50 | 3.47 | **19.38** |
-| `b64decode(validate=True)` | 64 B | 0.19 | 0.23 | **0.43** |
-| | 4 KiB | 0.53 | 7.25 | **14.61** |
-| | 64 KiB | 0.55 | 14.65 | **30.81** |
-| | 1 MiB | 0.55 | 15.24 | **19.55** |
+| `b64decode` | 64 B | 0.24 | 0.43 | **0.97** |
+| | 4 KiB | 0.48 | 3.06 | **21.51** |
+| | 64 KiB | 0.49 | 3.44 | **32.20** |
+| | 1 MiB | 0.50 | 3.47 | **19.16** |
+| `b64decode(validate=True)` | 64 B | 0.19 | 0.23 | **0.42** |
+| | 4 KiB | 0.53 | 7.22 | **14.24** |
+| | 64 KiB | 0.55 | 14.74 | **30.49** |
+| | 1 MiB | 0.55 | 15.39 | **20.64** |
 | `urlsafe_b64decode` | 64 B | 0.16 | 0.16 | **0.98** |
-| | 64 KiB | 0.41 | 2.52 | **33.86** |
-| `decodebytes` | 64 KiB | 0.49 | | **12.10** |
+| | 64 KiB | 0.41 | 2.52 | **34.14** |
+| `decodebytes` | 64 KiB | 0.49 | | **12.19** |
 
 pybase64 is fast only with `validate=True`; by default (`validate=False`, as
 in `base64`) and in `urlsafe_b64decode`, it is 4 to 13 times slower than
@@ -166,23 +166,22 @@ fastpybase64 from 4 KiB on. pybase64 has no
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_encode_dark.png">
-  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_encode.png" width="80%" alt="Encoding 64 KiB: pybase64 b64encode 32.46 GB/s, fastpybase64 b64encode 30.68, fastpybase64 urlsafe_b64encode 30.31, pybase64 urlsafe_b64encode 9.84, base64 b64encode 0.98, base64 urlsafe_b64encode 0.69">
+  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_encode.png" width="80%" alt="Encoding 64 KiB: fastpybase64 b64encode 33.21 GB/s, pybase64 b64encode 32.31, fastpybase64 urlsafe_b64encode 30.52, pybase64 urlsafe_b64encode 9.59, base64 b64encode 0.98, base64 urlsafe_b64encode 0.69">
 </picture>
 
 | function | size | `base64` | pybase64 | fastpybase64 |
 |---|---:|---:|---:|---:|
 | `b64encode` | 64 B | 0.43 | 0.39 | **1.34** |
-| | 4 KiB | 0.95 | 16.15 | **31.18** |
-| | 64 KiB | 0.98 | 32.46 | 30.68 |
-| | 1 MiB | 0.75 | 18.43 | 17.92 |
+| | 4 KiB | 0.95 | 16.05 | **32.62** |
+| | 64 KiB | 0.98 | 32.31 | 33.21 |
+| | 1 MiB | 0.75 | 18.35 | 18.49 |
 | `urlsafe_b64encode` | 64 B | 0.30 | 0.21 | **1.34** |
-| | 64 KiB | 0.69 | 9.84 | **30.31** |
+| | 64 KiB | 0.69 | 9.59 | **30.52** |
 | `encodebytes` | 64 B | 0.11 | 0.50 | **1.29** |
-| | 64 KiB | 0.38 | 1.18 | **22.20** |
+| | 64 KiB | 0.38 | 1.18 | **22.08** |
 
-From 64 KiB on, `b64encode` runs at the same speed in pybase64 and
-fastpybase64: both use the same AVX-512 algorithm, and which one is ahead
-changes from run to run (within 6%). On smaller inputs, and for the URL-safe
+From 64 KiB on, `b64encode` runs at about the same speed in pybase64 and
+fastpybase64 (within a few percent): both use the same AVX-512 algorithm. On smaller inputs, and for the URL-safe
 alphabet and MIME line breaks, fastpybase64 is faster.
 
 ### Small inputs
@@ -193,7 +192,7 @@ arguments without creating objects and writes the result directly into the
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_small_dark.png">
-  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_small.png" width="80%" alt="Time per call for 64 bytes: fastpybase64 b64encode 48 ns, pybase64 164 ns, base64 149 ns; fastpybase64 b64decode 67 ns, pybase64 145 ns, base64 267 ns">
+  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_small.png" width="80%" alt="Time per call for 64 bytes: fastpybase64 b64encode 48 ns, pybase64 164 ns, base64 149 ns; fastpybase64 b64decode 66 ns, pybase64 149 ns, base64 267 ns">
 </picture>
 
 ### Apple M4 Max
@@ -203,13 +202,13 @@ NEON kernel. GB/s:
 
 | function | size | `base64` | pybase64 | fastpybase64 |
 |---|---:|---:|---:|---:|
-| `b64encode` | 64 B | 0.56 | 0.77 | **1.62** |
-| | 64 KiB | 1.13 | 23.30 | **23.70** |
-| `b64decode` | 64 B | 0.33 | 0.61 | **1.16** |
-| | 64 KiB | 0.92 | 4.23 | **13.94** |
-| `b64decode(validate=True)` | 64 KiB | 0.95 | 12.16 | **13.71** |
-| `urlsafe_b64decode` | 64 KiB | 0.71 | 3.06 | **13.00** |
-| `encodebytes` | 64 KiB | 0.47 | 8.53 | **12.82** |
+| `b64encode` | 64 B | 0.57 | 0.79 | **1.67** |
+| | 64 KiB | 1.17 | 24.77 | 24.60 |
+| `b64decode` | 64 B | 0.34 | 0.63 | **1.19** |
+| | 64 KiB | 0.94 | 4.34 | **14.32** |
+| `b64decode(validate=True)` | 64 KiB | 0.98 | 12.49 | **13.97** |
+| `urlsafe_b64decode` | 64 KiB | 0.67 | 3.22 | **13.17** |
+| `encodebytes` | 64 KiB | 0.47 | 8.78 | **13.35** |
 
 ## Releases
 

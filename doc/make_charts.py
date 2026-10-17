@@ -15,7 +15,7 @@ from matplotlib import font_manager
 HERE = os.path.dirname(os.path.abspath(__file__))
 MACHINE = "Intel Xeon Gold 6548N (Emerald Rapids)"
 PYTHON = "Python 3.14.6"
-SOFTWARE = "fastpybase64 0.1.0 (simdutf 9.3.1)  ·  pybase64 1.5.1"
+SOFTWARE = "fastpybase64 0.1.1 (simdutf 9.3.2)  ·  pybase64 1.5.1"
 
 THEMES = {
     "light": dict(bg="#ffffff", text="#111111", sub="#555555", meta="#8a8a8a", grid="#e2e2e2",
@@ -87,22 +87,22 @@ chart("perf_decode",
       "Decoding base64 in Python",
       "b64decode of 64 KiB of random bytes, base64 encoded",
       META,
-      [("fastpybase64", "b64decode", 32.66, True),
-       ("fastpybase64", "validate=True", 30.81, True),
-       ("pybase64", "validate=True", 14.65, False),
+      [("fastpybase64", "b64decode", 32.20, True),
+       ("fastpybase64", "validate=True", 30.49, True),
+       ("pybase64", "validate=True", 14.74, False),
        ("pybase64", "b64decode", 3.44, False),
        ("base64 (stdlib)", "validate=True", 0.55, False),
-       ("base64 (stdlib)", "b64decode", 0.50, False)],
+       ("base64 (stdlib)", "b64decode", 0.49, False)],
       "Decoding speed", "GB/s of binary data", " GB/s")
 
 chart("perf_encode",
       "Encoding base64 in Python",
       "64 KiB of random bytes",
       META,
-      [("pybase64", "b64encode", 32.46, False),
-       ("fastpybase64", "b64encode", 30.68, True),
-       ("fastpybase64", "urlsafe_b64encode", 30.31, True),
-       ("pybase64", "urlsafe_b64encode", 9.84, False),
+      [("fastpybase64", "b64encode", 33.21, True),
+       ("pybase64", "b64encode", 32.31, False),
+       ("fastpybase64", "urlsafe_b64encode", 30.52, True),
+       ("pybase64", "urlsafe_b64encode", 9.59, False),
        ("base64 (stdlib)", "b64encode", 0.98, False),
        ("base64 (stdlib)", "urlsafe_b64encode", 0.69, False)],
       "Encoding speed", "GB/s of binary data", " GB/s")
@@ -114,7 +114,7 @@ chart("perf_small",
       [("fastpybase64", "b64encode", ns_per_call(64, 1.34), True),
        ("pybase64", "b64encode", ns_per_call(64, 0.39), False),
        ("base64 (stdlib)", "b64encode", ns_per_call(64, 0.43), False),
-       ("fastpybase64", "b64decode", ns_per_call(64, 0.96), True),
-       ("pybase64", "b64decode", ns_per_call(64, 0.44), False),
+       ("fastpybase64", "b64decode", ns_per_call(64, 0.97), True),
+       ("pybase64", "b64decode", ns_per_call(64, 0.43), False),
        ("base64 (stdlib)", "b64decode", ns_per_call(64, 0.24), False)],
       "Time per call", "ns", " ns", fmt="{:.0f}", lower_is_better=True)

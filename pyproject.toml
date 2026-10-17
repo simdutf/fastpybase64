@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastpybase64"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fast Base64 encoding and decoding for Python, built on simdutf"
 readme = "README.md"
 authors = [

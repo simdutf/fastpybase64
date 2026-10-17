@@ -12,7 +12,7 @@
 
 #include <cstring>
 
-#define FASTPYBASE64_VERSION "0.1.0"
+#define FASTPYBASE64_VERSION "0.1.1"
 
 // Unity build: compiling simdutf in this translation unit keeps the build
 // simple and lets the compiler inline across the boundary.

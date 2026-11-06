@@ -215,12 +215,12 @@ PyObject *encode_with_altchars(const InputView &input, const char altchars[2]) {
   }
   char *out = PyBytes_AS_STRING(result);
   Py_ssize_t length = PyBytes_GET_SIZE(result);
+  const char plus = altchars[0];
+  const char slash = altchars[1];
+  // Store every byte so the compiler can vectorize the substitution.
   for (Py_ssize_t i = 0; i < length; i++) {
-    if (out[i] == '+') {
-      out[i] = altchars[0];
-    } else if (out[i] == '/') {
-      out[i] = altchars[1];
-    }
+    const char c = out[i];
+    out[i] = c == '+' ? plus : (c == '/' ? slash : c);
   }
   return result;
 }

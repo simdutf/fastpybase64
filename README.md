@@ -93,7 +93,7 @@ change, so memory stays safe).
 ## Build and test
 
 Python 3.10 or newer, and a C++17 compiler (clang, GCC or MSVC). The simdutf
-9.3.2 amalgamation is in `vendor/`. Only its base64 functions are compiled
+9.4.0 amalgamation is in `vendor/`. Only its base64 functions are compiled
 (see `setup.py`).
 
 pip:

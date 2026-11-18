@@ -368,7 +368,17 @@ PyObject *try_decode(const InputView &input, bool url, bool validate) {
     return nullptr;
   }
   if (r.count != max_length) {
-    if (_PyBytes_Resize(&result, Py_ssize_t(r.count)) != 0) {
+    // The maximal length counts spaces and line breaks as data, so MIME input
+    // (a line break every 76 characters) always decodes to fewer bytes. When
+    // the slack is small, shorten the bytes object in place instead of
+    // reallocating it. Reallocating made large MIME inputs several times
+    // slower with glibc: the block is mmap'ed, the shrink is an mremap, and
+    // the adaptive mmap threshold then learns the shrunk size, which is below
+    // the next request, so every call maps fresh pages and faults on them.
+    if (max_length - r.count <= max_length / 8) {
+      Py_SET_SIZE(result, Py_ssize_t(r.count));
+      out[r.count] = '\0';
+    } else if (_PyBytes_Resize(&result, Py_ssize_t(r.count)) != 0) {
       return nullptr;
     }
   }

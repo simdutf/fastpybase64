@@ -1,6 +1,7 @@
 """Compare fastpybase64 with the standard library and pybase64.
 
 Usage: python bench.py [--sizes 16,1024,1048576] [--time 0.2] [--same-process]
+                       [--exact-sizing]
 
 Throughput is reported in GB/s of *binary* (decoded) data for both encoding
 and decoding, so that the numbers of the two directions are comparable. For
@@ -100,7 +101,8 @@ def run_in_child(op, arg, size, args):
         out = subprocess.run(
             [sys.executable, __file__, "--child", f.name, "--ops", op,
              "--sizes", str(size), "--time", str(args.time),
-             "--repeat", str(args.repeat)],
+             "--repeat", str(args.repeat)]
+            + (["--exact-sizing"] if args.exact_sizing else []),
             check=True, stdout=subprocess.PIPE, text=True,
         ).stdout
     finally:
@@ -125,6 +127,11 @@ def main():
         action="store_true",
         help="measure in this process (by default each measurement runs in a fresh one)",
     )
+    parser.add_argument(
+        "--exact-sizing",
+        action="store_true",
+        help="call fastpybase64.set_exact_sizing(True) before measuring",
+    )
     parser.add_argument("--child", metavar="FILE", help=argparse.SUPPRESS)
     args = parser.parse_args()
     sizes = [int(s) for s in args.sizes.split(",")]
@@ -133,6 +140,7 @@ def main():
         if op not in OPERATIONS:
             parser.error(f"unknown operation {op!r}; choose among {', '.join(OPERATIONS)}")
 
+    fastpybase64.set_exact_sizing(args.exact_sizing)
     if args.child:
         with open(args.child, "rb") as f:
             arg = f.read()
@@ -148,7 +156,8 @@ def print_header():
     print(
         f"fastpybase64 {fastpybase64.__version__} "
         f"(simdutf {fastpybase64.simdutf_version}, kernel: "
-        f"{fastpybase64.get_implementation()})"
+        f"{fastpybase64.get_implementation()}"
+        f"{', exact sizing' if fastpybase64.get_exact_sizing() else ''})"
     )
     if pybase64 is not None:
         print(f"pybase64 {pybase64.get_version()}")

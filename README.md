@@ -93,11 +93,15 @@ make large MIME inputs several times slower on Linux, because glibc would
 then map fresh memory for every call. A larger difference (input that is
 mostly spaces, for example) is given back.
 
-`fastpybase64.set_exact_sizing(True)` sizes every decoded output exactly,
-with an extra pass over the input, so that no memory goes unused. Decoding
-is then slower: on an Intel Xeon Gold 6548N, 1 MiB decodes at 14.0 GB/s
-instead of 19.1 GB/s, and 1 MiB of MIME data at 8.5 GB/s instead of 12.0
-GB/s. The setting applies to the whole process.
+`fastpybase64.set_exact_sizing(True)` sizes every decoded output exactly
+for valid input, with an extra pass over the input, so that no memory goes
+unused. Valid input contains only base64 alphabet characters, `=` padding,
+and ASCII whitespace: any byte at or below 0x20, which covers a CRLF every
+76 characters. A byte above 0x20 and outside the alphabet is counted in
+that length and then ignored, so the allocation can be larger than the
+output. Decoding is then slower: on an Intel Xeon Gold 6548N, 1 MiB decodes
+at 14.0 GB/s instead of 19.1 GB/s, and 1 MiB of MIME data at 8.5 GB/s
+instead of 12.0 GB/s. The setting applies to the whole process.
 
 ### Threads
 

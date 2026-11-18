@@ -184,6 +184,28 @@ in `base64`) and in `urlsafe_b64decode`, it is 4 to 13 times slower than
 fastpybase64 from 4 KiB on. pybase64 has no
 `decodebytes`.
 
+### MIME
+
+Lines of 76 characters ending with CRLF. Python 3.14.10, fastpybase64 0.2.0
+(simdutf 9.4.0, `icelake`), pybase64 1.5.1, on the same machine. Speeds are
+GB/s of binary data.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_mime_dark.png">
+  <img src="https://raw.githubusercontent.com/simdutf/fastpybase64/main/doc/perf_mime.png" width="80%" alt="Decoding 64 KiB of MIME base64 (CRLF): fastpybase64 12.21 GB/s, pybase64 2.93, base64 1.04">
+</picture>
+
+| function | size | `base64` | pybase64 | fastpybase64 |
+|---|---:|---:|---:|---:|
+| `b64decode`, MIME | 64 B | 0.30 | 0.41 | **0.89** |
+| | 4 KiB | 0.97 | 2.50 | **10.03** |
+| | 64 KiB | 1.04 | 2.93 | **12.21** |
+| | 1 MiB | 1.04 | 2.95 | **12.06** |
+
+fastpybase64 skips the line breaks while decoding. At 64 KiB it reaches
+12.21 GB/s, four times pybase64 (2.93 GB/s) and twelve times `base64`
+(1.04 GB/s). From 64 KiB to 1 MiB the speed stays near 12 GB/s.
+
 ### Encoding
 
 <picture>

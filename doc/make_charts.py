@@ -107,6 +107,16 @@ chart("perf_encode",
        ("base64 (stdlib)", "urlsafe_b64encode", 0.69, False)],
       "Encoding speed", "GB/s of binary data", " GB/s")
 
+chart("perf_mime",
+      "Decoding MIME base64 in Python",
+      "b64decode of 64 KiB, lines of 76 characters ending with CRLF",
+      "fastpybase64 0.2.0 (simdutf 9.4.0)  ·  pybase64 1.5.1  ·  Python 3.14.10  ·  "
+      + MACHINE,
+      [("fastpybase64", "b64decode", 12.21, True),
+       ("pybase64", "b64decode", 2.93, False),
+       ("base64 (stdlib)", "b64decode", 1.04, False)],
+      "Decoding speed", "GB/s of binary data", " GB/s")
+
 chart("perf_small",
       "Small inputs",
       "time per call for 64 bytes of binary data (88 base64 characters)",

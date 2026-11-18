@@ -10,6 +10,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <atomic>
 #include <cstring>
 
 #define FASTPYBASE64_VERSION "0.1.4"
@@ -22,6 +23,10 @@ namespace {
 
 // Release the GIL when processing at least this many bytes.
 constexpr Py_ssize_t kReleaseGilThreshold = 64 * 1024;
+
+// set_exact_sizing(): size decoded outputs exactly (one more pass over the
+// input) instead of allocating the maximal length. Process-wide.
+std::atomic<bool> exact_sizing{false};
 
 // stdlib.encodebytes emits lines of at most 76 characters.
 constexpr size_t kMimeLineLength = 76;
@@ -318,15 +323,34 @@ bool garbage_result_ok(const char *in, size_t length, size_t decoded,
   return true;
 }
 
+// Decodes into out, which holds capacity bytes. On success, r.count is the
+// number of bytes written. A capacity below the maximal binary length (exact
+// sizing) requires the bounds-checked decoder.
+simdutf::result decode_into(const InputView &input, char *out,
+                            size_t capacity, size_t max_length,
+                            simdutf::base64_options options) {
+  if (capacity >= max_length) {
+    return simdutf::base64_to_binary(input.data, input.length, out, options);
+  }
+  size_t written = capacity;
+  simdutf::result r = simdutf::base64_to_binary_safe(
+      input.data, input.length, out, written, options);
+  if (r.error == simdutf::error_code::SUCCESS) {
+    r.count = written;
+  }
+  return r;
+}
+
 simdutf::result run_decoder(const InputView &input, char *out,
+                            size_t capacity, size_t max_length,
                             simdutf::base64_options options) {
   simdutf::result r;
   if (Py_ssize_t(input.length) >= kReleaseGilThreshold) {
     Py_BEGIN_ALLOW_THREADS
-    r = simdutf::base64_to_binary(input.data, input.length, out, options);
+    r = decode_into(input, out, capacity, max_length, options);
     Py_END_ALLOW_THREADS
   } else {
-    r = simdutf::base64_to_binary(input.data, input.length, out, options);
+    r = decode_into(input, out, capacity, max_length, options);
   }
   return r;
 }
@@ -340,7 +364,14 @@ PyObject *try_decode(const InputView &input, bool url, bool validate) {
   }
   size_t max_length =
       simdutf::maximal_binary_length_from_base64(input.data, input.length);
-  PyObject *result = PyBytes_FromStringAndSize(nullptr, Py_ssize_t(max_length));
+  // With exact sizing, binary_length_from_base64 skips spaces and line
+  // breaks: the result is exact for valid input and an upper bound for any
+  // input (characters outside the alphabet are counted).
+  size_t capacity = max_length;
+  if (exact_sizing.load(std::memory_order_relaxed)) {
+    capacity = simdutf::binary_length_from_base64(input.data, input.length);
+  }
+  PyObject *result = PyBytes_FromStringAndSize(nullptr, Py_ssize_t(capacity));
   if (result == nullptr) {
     return nullptr;
   }
@@ -348,7 +379,7 @@ PyObject *try_decode(const InputView &input, bool url, bool validate) {
 
   simdutf::base64_options options =
       url ? simdutf::base64_default_or_url : simdutf::base64_default;
-  simdutf::result r = run_decoder(input, out, options);
+  simdutf::result r = run_decoder(input, out, capacity, max_length, options);
   bool ok;
   if (r.error == simdutf::error_code::SUCCESS) {
     ok = validate ? strict_result_ok(input.data, input.length, r.count)
@@ -357,7 +388,7 @@ PyObject *try_decode(const InputView &input, bool url, bool validate) {
     // The input may contain characters that the standard library discards.
     options = url ? simdutf::base64_default_or_url_accept_garbage
                   : simdutf::base64_default_accept_garbage;
-    r = run_decoder(input, out, options);
+    r = run_decoder(input, out, capacity, max_length, options);
     ok = r.error == simdutf::error_code::SUCCESS &&
          garbage_result_ok(input.data, input.length, r.count, url);
   } else {
@@ -367,8 +398,11 @@ PyObject *try_decode(const InputView &input, bool url, bool validate) {
     Py_DECREF(result);
     return nullptr;
   }
-  if (r.count != max_length) {
-    if (_PyBytes_Resize(&result, Py_ssize_t(r.count)) != 0) {
+  if (r.count != capacity) {
+    if (capacity - r.count <= capacity / 8) {
+      Py_SET_SIZE(result, Py_ssize_t(r.count));
+      out[r.count] = '\0';
+    } else if (_PyBytes_Resize(&result, Py_ssize_t(r.count)) != 0) {
       return nullptr;
     }
   }
@@ -554,6 +588,19 @@ PyObject *get_implementation(PyObject *, PyObject *) {
   return PyUnicode_FromStringAndSize(name.data(), Py_ssize_t(name.size()));
 }
 
+PyObject *set_exact_sizing(PyObject *, PyObject *arg) {
+  int enabled = PyObject_IsTrue(arg);
+  if (enabled < 0) {
+    return nullptr;
+  }
+  exact_sizing.store(enabled != 0, std::memory_order_relaxed);
+  Py_RETURN_NONE;
+}
+
+PyObject *get_exact_sizing(PyObject *, PyObject *) {
+  return PyBool_FromLong(exact_sizing.load(std::memory_order_relaxed));
+}
+
 #define FASTCALL_KW(f) reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)(void)>(f))
 
 PyMethodDef methods[] = {
@@ -589,6 +636,18 @@ PyMethodDef methods[] = {
     {"get_implementation", get_implementation, METH_NOARGS,
      "get_implementation()\n--\n\n"
      "Return the name of the SIMD kernel selected by simdutf at runtime."},
+    {"set_exact_sizing", set_exact_sizing, METH_O,
+     "set_exact_sizing(enabled, /)\n--\n\n"
+     "Size decoded outputs exactly (default: False).\n\n"
+     "By default, the decoders allocate the maximal output length, which\n"
+     "counts spaces and line breaks as data, and may leave up to 1/8 of the\n"
+     "allocation unused (about 2.6% for MIME input). With exact sizing, an\n"
+     "extra pass over the input computes the exact length: no memory is\n"
+     "wasted, but decoding is slower. The setting applies to the whole\n"
+     "process."},
+    {"get_exact_sizing", get_exact_sizing, METH_NOARGS,
+     "get_exact_sizing()\n--\n\n"
+     "Return whether decoded outputs are sized exactly."},
     {nullptr, nullptr, 0, nullptr},
 };
 

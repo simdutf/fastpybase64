@@ -46,6 +46,7 @@ base64.encodebytes(data)                       # MIME: lines of 76 characters
 | `urlsafe_b64encode(s)`, `urlsafe_b64decode(s)` | alphabet with `-` and `_` |
 | `encodebytes(s)`, `decodebytes(s)` | MIME style: a newline after every 76 characters |
 | `get_implementation()` | the kernel simdutf selected for this processor (`icelake`, `haswell`, `arm64`, ...) |
+| `set_exact_sizing(enabled)`, `get_exact_sizing()` | size decoded outputs exactly (off by default, see [Memory](#memory)) |
 | `simdutf_version`, `__version__` | versions of simdutf and of fastpybase64 |
 
 The functions accept what `base64` accepts: `bytes`, `bytearray`,
@@ -80,6 +81,27 @@ the same message, and the rare inputs where `base64` is lenient in odd ways
 * An `altchars` other than `b"+/"` and `b"-_"` is handled by encoding with
   simdutf and then replacing the two characters; decoding with such an
   alphabet is left to `base64`.
+
+### Memory
+
+A decoder does not know how many bytes it will produce until it has skipped
+the spaces and line breaks, so fastpybase64 allocates the maximal length,
+which counts them as data. When the result is shorter by at most 1/8, the
+`bytes` object keeps its allocation: about 2.6% of it goes unused for MIME
+input (a CRLF every 76 characters). Shrinking the allocation instead would
+make large MIME inputs several times slower on Linux, because glibc would
+then map fresh memory for every call. A larger difference (input that is
+mostly spaces, for example) is given back.
+
+`fastpybase64.set_exact_sizing(True)` sizes every decoded output exactly
+for valid input, with an extra pass over the input, so that no memory goes
+unused. Valid input contains only base64 alphabet characters, `=` padding,
+and ASCII whitespace: any byte at or below 0x20, which covers a CRLF every
+76 characters. A byte above 0x20 and outside the alphabet is counted in
+that length and then ignored, so the allocation can be larger than the
+output. Decoding is then slower: on an Intel Xeon Gold 6548N, 1 MiB decodes
+at 14.0 GB/s instead of 19.1 GB/s, and 1 MiB of MIME data at 8.5 GB/s
+instead of 12.0 GB/s. The setting applies to the whole process.
 
 ### Threads
 

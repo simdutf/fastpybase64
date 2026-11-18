@@ -258,3 +258,25 @@ def test_large_with_noise():
     check_decoders(encoded)
     check_decoders(encoded.replace(b"\n", b"!\n"))
     check_decoders(encoded + b"YQ==")
+
+
+def test_exact_sizing_setting(sizing):
+    assert fastpybase64.get_exact_sizing() is sizing
+    fastpybase64.set_exact_sizing(0)
+    assert fastpybase64.get_exact_sizing() is False
+    fastpybase64.set_exact_sizing([1])
+    assert fastpybase64.get_exact_sizing() is True
+    with pytest.raises(TypeError):
+        fastpybase64.set_exact_sizing()
+
+
+@pytest.mark.parametrize("length", [0, 1, 2, 3, 57, 1000, 1 << 20])
+def test_mime_crlf(length):
+    data = random.Random(length).randbytes(length)
+    encoded = base64.encodebytes(data).replace(b"\n", b"\r\n")
+    check_decoders(encoded)
+    check_decoders(b" \r\n\t" + encoded + b"\r\n \r\n")
+
+
+def test_only_whitespace():
+    check_decoders(b" \r\n" * 1000)

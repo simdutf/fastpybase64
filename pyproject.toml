@@ -43,7 +43,6 @@ bench = ["pybase64"]
 py-modules = []
 
 [tool.cibuildwheel]
-skip = ["pp*"]
 test-requires = ["pytest"]
 test-command = "pytest {project}/tests -q"
 
